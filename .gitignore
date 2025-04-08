@@ -1,0 +1,98 @@
+# Environnement virtuel
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Fichiers de configuration sensibles
+.env
+.env.*
+!.env.example
+
+# Fichiers Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE et éditeurs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.pydevproject
+.settings/
+
+# Fichiers de logs
+*.log
+logs/
+log/
+
+# Fichiers de base de données
+*.db
+*.sqlite3
+*.sqlite
+
+# Fichiers de cache
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Fichiers de déploiement
+instance/
+.webassets-cache
+
+# Fichiers de documentation
+docs/_build/
+site/
+
+# Fichiers de test
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+.pytest_cache/
+tests/__pycache__/
+
+# Fichiers temporaires
+*.tmp
+*.bak
+*.swp
+*~
+
+# Fichiers spécifiques au projet
+migrations/
+*.sqlite3
+*.db
+*.sqlite 
