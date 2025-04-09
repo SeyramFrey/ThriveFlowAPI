@@ -1,8 +1,9 @@
 from datetime import datetime
-from .user import db
+from app.models import db
 
 class Task(db.Model):
     __tablename__ = 'tasks'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
@@ -18,19 +19,10 @@ class Task(db.Model):
     
     # Relations
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
-    project = db.relationship('Project', backref=db.backref('tasks', lazy=True))
-    
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
-    category = db.relationship('Category', backref=db.backref('tasks', lazy=True))
-    
     assignee_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    assignee = db.relationship('User', backref=db.backref('assigned_tasks', lazy=True))
-    
     creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    creator = db.relationship('User', foreign_keys=[creator_id], backref=db.backref('created_tasks', lazy=True))
-    
     parent_id = db.Column(db.Integer, db.ForeignKey('tasks.id'))
-    subtasks = db.relationship('Task', backref=db.backref('parent', remote_side=[id]))
     
     def __init__(self, title, project_id, creator_id, description=None, category_id=None, 
                  assignee_id=None, due_date=None, estimated_hours=None, priority=0):

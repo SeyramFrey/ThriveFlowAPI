@@ -1,104 +1,51 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
-from typing import Dict, List, Optional
+import os
+from mistralai import Mistral
+import logging
 import json
+from datetime import datetime
 
 class ProjectGenerator:
     def __init__(self):
-        self.model_name = "mistralai/Mixtral-8x7B-v0.1"
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_name,
-            torch_dtype=torch.float16,
-            device_map="auto",
-            load_in_8bit=True
-        )
-        
-    def generate_project_from_idea(self, idea: str, context: Optional[Dict] = None) -> Dict:
-        """
-        Génère un projet structuré à partir d'une idée.
-        
-        Args:
-            idea (str): L'idée de l'utilisateur
-            context (Optional[Dict]): Contexte supplémentaire (objectifs, contraintes, etc.)
-            
-        Returns:
-            Dict: Projet généré avec ses composants
-        """
-        # Construction du prompt
-        prompt = self._build_prompt(idea, context)
-        
-        # Génération
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-        outputs = self.model.generate(
-            **inputs,
-            max_length=1024,
-            temperature=0.7,
-            top_p=0.9,
-            do_sample=True
-        )
-        
-        # Décodage de la réponse
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        
-        # Extraction et structuration des informations
-        project = self._parse_response(response)
-        
-        return project
-    
-    def _build_prompt(self, idea: str, context: Optional[Dict] = None) -> str:
-        """Construit le prompt pour le modèle."""
-        prompt = f"""Tu es un expert en gestion de projet, en gestion de budget et en gestion de tâches. À partir de l'idée suivante, génère un projet structuré :
+        logging.info("=== Initialisation du ProjectGenerator ===")
+        self.api_key = "6rJnvjrYHYNMR9yrWHT3u5o7AJjIRUPd"
+        self.client = Mistral(api_key=self.api_key)
+        logging.info("Client Mistral initialisé avec succès")
 
-Idée : {idea}
-
-Contexte : {json.dumps(context) if context else "Aucun contexte spécifique"}
-
-Génère un projet avec les éléments suivants :
-1. Nom du projet
-2. Description détaillée
-3. Objectifs principaux
-4. Livrables attendus
-5. Étapes principales
-6. Ressources nécessaires
-7. Contraintes potentielles
-8. Critères de succès
-
-Format de réponse en JSON :
-{{
-    "name": "Nom du projet",
-    "description": "Description détaillée",
-    "objectives": ["Objectif 1", "Objectif 2", ...],
-    "deliverables": ["Livrable 1", "Livrable 2", ...],
-    "milestones": [
-        {{
-            "name": "Nom de l'étape",
-            "description": "Description",
-            "due_date": "Date estimée"
-        }},
-        ...
-    ],
-    "resources": ["Ressource 1", "Ressource 2", ...],
-    "constraints": ["Contrainte 1", "Contrainte 2", ...],
-    "success_criteria": ["Critère 1", "Critère 2", ...]
-}}
-"""
-        return prompt
-    
-    def _parse_response(self, response: str) -> Dict:
-        """Extrait et structure les informations de la réponse du modèle."""
+    def generate_project(self, idea: str) -> dict:
         try:
-            # Extraction de la partie JSON de la réponse
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
-            json_str = response[json_start:json_end]
+            logging.info("=== Début de generate_project ===")
+            logging.info(f"Idée reçue : {idea}")
             
-            # Conversion en dictionnaire
-            project = json.loads(json_str)
-            return project
-        except Exception as e:
-            print(f"Erreur lors de l'analyse de la réponse : {e}")
+            logging.info("Préparation de la requête Mistral")
+            messages = [
+                {
+                    "role": "user",
+                    "content": idea
+                },
+            ]
+            logging.info(f"Messages préparés : {messages}")
+            
+            logging.info("Envoi de la requête à l'API Mistral")
+            chat_response = self.client.agents.complete(
+                agent_id="ag:d6a2a39e:20250408:thriverflow-agent:70d068e5",
+                messages=messages,
+            )
+            logging.info("Réponse reçue de l'API Mistral")
+            logging.info(f"Réponse brute : {str(chat_response)}")
+            
+            generated_text = chat_response.choices[0].message.content
+            
             return {
-                "error": "Impossible de générer un projet structuré à partir de la réponse du modèle"
-            } 
+                "raw_response": json.loads(generated_text),
+                "status": "success",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logging.error(f"Erreur dans generate_project : {str(e)}")
+            logging.error(f"Type d'erreur : {type(e)}")
+            raise
+
+    def generate_project_from_idea(self, idea: str) -> dict:
+        logging.info(f"Starting generate_project_from_idea with idea: {idea}")
+        return self.generate_project(idea) 
