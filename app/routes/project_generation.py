@@ -92,6 +92,16 @@ def generate_project():
             logging.error("No idea provided in request")
             return jsonify({'error': 'Idea is required'}), 400
             
+        # Vérifier si l'idée est trop courte
+        if len(data['idea'].strip()) < 10:
+            logging.error("Idée trop courte")
+            return jsonify({
+                'success': False,
+                'error': 'Idée trop courte',
+                'message': "Veuillez fournir une idée plus détaillée pour générer un projet.",
+                'rejectResponse': True
+            }), 400
+            
         # Enregistrer l'idée de l'utilisateur
         try:
             idea = Idea(
@@ -113,6 +123,17 @@ def generate_project():
             logging.info(f"Appel de generate_project avec l'idée: {data['idea']}")
             generated_project = project_generator.generate_project(data['idea'])
             logging.info(f"Project generated successfully: {generated_project}")
+            
+            # Vérifier si une erreur est présente dans la réponse
+            if generated_project.get("raw_response", {}).get("error"):
+                error_msg = generated_project["raw_response"]["error"]
+                logging.error(f"Erreur détectée dans la réponse: {error_msg}")
+                return jsonify({
+                    'success': False,
+                    'error': error_msg,
+                    'message': "Le format de la réponse reçue n'est pas valide. Veuillez reformuler votre idée.",
+                    'rejectResponse': True
+                }), 422
             
             # Retourner le JSON avec l'ID de l'idée pour pouvoir la retrouver
             return jsonify({
@@ -171,9 +192,36 @@ def save_generated_project():
         mistral_response = data['mistral_response']
         idea_id = data.get('idea_id')
         
+        # Vérifier si la réponse Mistral contient une erreur
+        if isinstance(mistral_response, dict) and mistral_response.get("error"):
+            error_msg = mistral_response["error"]
+            logging.error(f"Erreur détectée dans la réponse Mistral: {error_msg}")
+            return jsonify({
+                'success': False,
+                'error': error_msg,
+                'message': "La réponse Mistral contient une erreur. Impossible de sauvegarder le projet."
+            }), 422
+        
         # Utiliser notre parseur pour extraire les données structurées
-        parsed_data = parse_mistral_response(mistral_response)
-        logging.info(f"Données parsées et prêtes à être enregistrées")
+        try:
+            parsed_data = parse_mistral_response(mistral_response)
+            logging.info(f"Données parsées et prêtes à être enregistrées")
+            
+            # Vérifier que les données requises sont présentes
+            if not parsed_data.get('project') or not parsed_data.get('activities'):
+                logging.error("Données manquantes dans la réponse parsée")
+                return jsonify({
+                    'success': False,
+                    'error': 'Missing required data in parsed response',
+                    'message': "Les données nécessaires à la création du projet sont manquantes."
+                }), 422
+        except Exception as e:
+            logging.error(f"Erreur lors du parsing des données: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'message': "Impossible de traiter les données reçues. Veuillez réessayer."
+            }), 422
         
         # Commencer une transaction pour garantir l'intégrité des données
         try:
